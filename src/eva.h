@@ -1,6 +1,7 @@
 #pragma once
 #include <stddef.h>
 
+#define EVA_SHADERSTAGE_MAX_UNIFORMS       32
 #define EVA_PIPELINE_MAX_LAYOUT_ATTRIBUTES 16
 #define EVA_PIPELINE_MAX_VERTEX_BUFFERS    16
 
@@ -34,6 +35,10 @@ typedef struct EvaBufferDesc {
 typedef struct EvaShaderDesc {
     struct {
         char const *src;
+        struct {
+            char const *name;
+            int format;
+        } uniforms[EVA_SHADERSTAGE_MAX_UNIFORMS];
     } vs, fs;
 } EvaShaderDesc;
 
@@ -42,8 +47,8 @@ typedef struct EvaPipelineDesc {
         int format;
         int binding;
     } layout[EVA_PIPELINE_MAX_LAYOUT_ATTRIBUTES];
-    EvaBuffer *vertexBuffers[EVA_PIPELINE_MAX_VERTEX_BUFFERS];
-    EvaBuffer *indexBuffer;
+    EvaBuffer *vbos[EVA_PIPELINE_MAX_VERTEX_BUFFERS];
+    EvaBuffer *ibo;
     EvaShader *shader;
 } EvaPipelineDesc;
 

@@ -1,4 +1,4 @@
-#include "../eva.h"
+#include "eva.h"
 
 #define GLAD_GL_IMPLEMENTATION
 #include "glad.h"
@@ -7,7 +7,7 @@ struct EvaBuffer {
     unsigned int id;
     unsigned int type;
     unsigned int usage;
-    size_t       size; 
+    size_t       size;
 };
 
 struct EvaShader {
@@ -16,7 +16,7 @@ struct EvaShader {
 
 struct EvaPipeline {
     unsigned int id;
-    EvaBuffer *indexBuffer;
+    EvaBuffer *ibo;
     EvaShader *shader;
 };
 
@@ -109,27 +109,35 @@ void EvaDeleteShader(EvaShader *shader) {
 
 EvaPipeline *EvaCreatePipeline(EvaPipelineDesc *desc) {
     EvaPipeline *pipeline = calloc(1, sizeof *pipeline);
-    pipeline->indexBuffer = desc->indexBuffer;
+    pipeline->ibo = desc->ibo;
     pipeline->shader = desc->shader;
 
     glGenVertexArrays(1, &pipeline->id);
     glBindVertexArray(pipeline->id);
 
-    if (desc->indexBuffer) {
-        pipeline->indexBuffer = desc->indexBuffer;
-        glBindBuffer(pipeline->indexBuffer->type, pipeline->indexBuffer->id);
+    if (desc->ibo) {
+        pipeline->ibo = desc->ibo;
+        glBindBuffer(pipeline->ibo->type, pipeline->ibo->id);
     }
 
+    int num_vbos = 0;
+    while (num_vbos < EVA_PIPELINE_MAX_VERTEX_BUFFERS && desc->vbos[num_vbos] != NULL) {
+        num_vbos++;
+    }
+
+    // Only calculate the stride if there's a single interleaved buffer
     size_t stride = 0;
-    for (size_t i = 0; i < EVA_PIPELINE_MAX_LAYOUT_ATTRIBUTES && desc->layout[i].format != EVA_VERTEXFORMAT_INVALID; i++) {
-        int type, count;
-        stride += TranslateVertexFormat(desc->layout[i].format, &type, &count) * count;
+    if (num_vbos == 1) {
+        for (size_t i = 0; i < EVA_PIPELINE_MAX_LAYOUT_ATTRIBUTES && desc->layout[i].format != EVA_VERTEXFORMAT_INVALID; i++) {
+            int type, count;
+            stride += TranslateVertexFormat(desc->layout[i].format, &type, &count) * count;
+        }
     }
 
     size_t offset = 0;
     for (size_t i = 0; i < EVA_PIPELINE_MAX_LAYOUT_ATTRIBUTES && desc->layout[i].format != EVA_VERTEXFORMAT_INVALID; i++) {
-        EvaBuffer *buffer = desc->vertexBuffers[desc->layout[i].binding];
-        glBindBuffer(buffer->type, buffer->id);
+        EvaBuffer *vbo = desc->vbos[desc->layout[i].binding];
+        glBindBuffer(vbo->type, vbo->id);
 
         int type, count;
         size_t size = TranslateVertexFormat(desc->layout[i].format, &type, &count);
@@ -137,7 +145,10 @@ EvaPipeline *EvaCreatePipeline(EvaPipelineDesc *desc) {
         glEnableVertexAttribArray(i);
         glVertexAttribPointer(i, count, type, 0, stride, (void *)offset);
 
-        offset += size * count;
+        // Only calculate the offset if there's a single interleaved buffer
+        if (num_vbos == 1) {
+            offset += size * count;
+        }
     }
 
     glBindVertexArray(0);
@@ -161,7 +172,7 @@ void EvaDraw(EvaPipeline *pipeline, int num_vertices) {
     glBindVertexArray(pipeline->id);
     glUseProgram(pipeline->shader->id);
 
-    if (pipeline->indexBuffer != NULL) {
+    if (pipeline->ibo != NULL) {
         glDrawElements(GL_TRIANGLES, num_vertices, GL_UNSIGNED_INT, NULL);
     } else {
         glDrawArrays(GL_TRIANGLES, 0, num_vertices);
