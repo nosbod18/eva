@@ -49,7 +49,7 @@ int main(void) {
 
     while (!WtkGetWindowShouldClose(window)) {
         EvaClear(0.1f, 0.1f, 0.1f, 1.0f);
-        EvaDraw(pipeline, 6);
+        EvaDraw(pipeline, 3);
 
         WtkSwapBuffers(window);
         WtkPollEvents();
