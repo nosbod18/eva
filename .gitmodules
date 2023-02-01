@@ -1,0 +1,3 @@
+[submodule "demos/wtk"]
+	path = demos/wtk
+	url = https://github.com/nosbod18/wtk
