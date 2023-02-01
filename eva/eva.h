@@ -48,8 +48,8 @@ typedef struct EvaBufferDesc {
 } EvaBufferDesc;
 
 typedef struct EvaShaderDesc {
-    char const *vs_source;
-    char const *fs_source;
+    char const *vs_src;
+    char const *fs_src;
     struct {
         char const *name;
         int format;

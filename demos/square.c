@@ -1,4 +1,4 @@
-#include "src/eva.h"
+#include "eva/eva.h"
 #include "wtk/wtk.h"
 
 float vertices[] = {
@@ -47,8 +47,8 @@ int main(void) {
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
-        .vs_source = vs_src,
-        .fs_source = fs_src,
+        .vs_src = vs_src,
+        .fs_src = fs_src,
     });
 
     EvaBindings bindings = {

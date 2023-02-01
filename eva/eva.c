@@ -134,11 +134,11 @@ EvaShader *EvaCreateShader(EvaShaderDesc *desc) {
     EvaShader *shader = calloc(1, sizeof *shader);
 
     unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &desc->vs_source, NULL);
+    glShaderSource(vs, 1, &desc->vs_src, NULL);
     glCompileShader(vs);
 
     unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs, 1, &desc->fs_source, NULL);
+    glShaderSource(fs, 1, &desc->fs_src, NULL);
     glCompileShader(fs);
 
     shader->id = glCreateProgram();
