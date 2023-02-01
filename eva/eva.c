@@ -3,8 +3,6 @@
 #define GLAD_GL_IMPLEMENTATION
 #include "glad.h"
 
-#include <stdio.h>
-
 ///
 /// Types
 ///
@@ -19,8 +17,6 @@ typedef struct VertexAttribute {
 struct EvaBuffer {
     VertexAttribute attributes[EVA_BUFFER_MAX_ATTRIBUTES];
     int num_attributes;
-    int usage;
-    size_t size;
     size_t stride;
     unsigned int id;
 };
@@ -43,13 +39,13 @@ struct EvaShader {
 
 static struct {
     unsigned int vao;
-} G = {0};
+} _eva = {0};
 
 static void InitIfNeeded(void) {
-    if (G.vao == 0) {
+    if (_eva.vao == 0) {
         gladLoaderLoadGL();
-        glGenVertexArrays(1, &G.vao);
-        glBindVertexArray(G.vao);
+        glGenVertexArrays(1, &_eva.vao);
+        glBindVertexArray(_eva.vao);
     }
 }
 
@@ -57,24 +53,16 @@ static void InitIfNeeded(void) {
 /// Buffer
 ///
 
-static int TranslateBufferUsage(int usage) {
-    switch (usage) {
-        case EVA_BUFFERUSAGE_STATIC:  return GL_STATIC_DRAW;
-        case EVA_BUFFERUSAGE_DYNAMIC: return GL_DYNAMIC_DRAW;
-    }
-    return 0;
-}
-
 static VertexAttribute TranslateVertexFormat(int format, size_t *size) {
     switch (format) {
-        case EVA_VERTEXFORMAT_INT:    *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 1};
-        case EVA_VERTEXFORMAT_INT2:   *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 2};
-        case EVA_VERTEXFORMAT_INT3:   *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 3};
-        case EVA_VERTEXFORMAT_INT4:   *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 4};
-        case EVA_VERTEXFORMAT_FLOAT:  *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 1};
-        case EVA_VERTEXFORMAT_FLOAT2: *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 2};
-        case EVA_VERTEXFORMAT_FLOAT3: *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 3};
-        case EVA_VERTEXFORMAT_FLOAT4: *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 4};
+        case EVA_INT:    *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 1};
+        case EVA_INT2:   *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 2};
+        case EVA_INT3:   *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 3};
+        case EVA_INT4:   *size = 4; return (VertexAttribute){.format = GL_INT,   .count = 4};
+        case EVA_FLOAT:  *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 1};
+        case EVA_FLOAT2: *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 2};
+        case EVA_FLOAT3: *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 3};
+        case EVA_FLOAT4: *size = 4; return (VertexAttribute){.format = GL_FLOAT, .count = 4};
     }
     *size = 0;
     return (VertexAttribute){0};
@@ -84,17 +72,16 @@ EvaBuffer *EvaCreateBuffer(EvaBufferDesc *desc) {
     InitIfNeeded();
 
     EvaBuffer *buffer = calloc(1, sizeof *buffer);
-    buffer->size = desc->size;
-    buffer->usage = TranslateBufferUsage(desc->usage);
 
-    int type = (desc->layout[0] == EVA_VERTEXFORMAT_INVALID) ? GL_ELEMENT_ARRAY_BUFFER : GL_ARRAY_BUFFER;
+    int type = (desc->layout[0] == 0) ? GL_ELEMENT_ARRAY_BUFFER : GL_ARRAY_BUFFER;
+    int usage = (desc->data == NULL) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW;
 
     glGenBuffers(1, &buffer->id);
     glBindBuffer(type, buffer->id);
-    glBufferData(type, buffer->size, desc->data, buffer->usage);
+    glBufferData(type, desc->size, desc->data, usage);
     glBindBuffer(type, 0);
 
-    for (int i = 0; i < EVA_BUFFER_MAX_ATTRIBUTES && desc->layout[i] != EVA_VERTEXFORMAT_INVALID; i++) {
+    for (int i = 0; i < EVA_BUFFER_MAX_ATTRIBUTES && desc->layout[i] != 0; i++) {
         size_t size;
         buffer->attributes[i] = TranslateVertexFormat(desc->layout[i], &size);
         buffer->attributes[i].offset = buffer->stride;
@@ -116,35 +103,38 @@ void EvaDeleteBuffer(EvaBuffer *buffer) {
 
 static Uniform TranslateUniformFormat(int format) {
     switch (format) {
-        case EVA_UNIFORMFORMAT_INT:    return (Uniform){.format = GL_INT, .count = 1};
-        case EVA_UNIFORMFORMAT_INT2:   return (Uniform){.format = GL_INT, .count = 2};
-        case EVA_UNIFORMFORMAT_INT3:   return (Uniform){.format = GL_INT, .count = 3};
-        case EVA_UNIFORMFORMAT_INT4:   return (Uniform){.format = GL_INT, .count = 4};
-        case EVA_UNIFORMFORMAT_FLOAT:  return (Uniform){.format = GL_FLOAT, .count = 1};
-        case EVA_UNIFORMFORMAT_FLOAT2: return (Uniform){.format = GL_FLOAT, .count = 2};
-        case EVA_UNIFORMFORMAT_FLOAT3: return (Uniform){.format = GL_FLOAT, .count = 3};
-        case EVA_UNIFORMFORMAT_FLOAT4: return (Uniform){.format = GL_FLOAT, .count = 4};
+        case EVA_INT:    return (Uniform){.format = GL_INT, .count = 1};
+        case EVA_INT2:   return (Uniform){.format = GL_INT, .count = 2};
+        case EVA_INT3:   return (Uniform){.format = GL_INT, .count = 3};
+        case EVA_INT4:   return (Uniform){.format = GL_INT, .count = 4};
+        case EVA_FLOAT:  return (Uniform){.format = GL_FLOAT, .count = 1};
+        case EVA_FLOAT2: return (Uniform){.format = GL_FLOAT, .count = 2};
+        case EVA_FLOAT3: return (Uniform){.format = GL_FLOAT, .count = 3};
+        case EVA_FLOAT4: return (Uniform){.format = GL_FLOAT, .count = 4};
     }
     return (Uniform){0};
+}
+
+unsigned int CreateShaderStage(int stage, char const *src) {
+    unsigned int shader = glCreateShader(stage);
+    glShaderSource(shader, 1, &src, NULL);
+    glCompileShader(shader);
+    return shader;
 }
 
 EvaShader *EvaCreateShader(EvaShaderDesc *desc) {
     InitIfNeeded();
 
     EvaShader *shader = calloc(1, sizeof *shader);
-
-    unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs, 1, &desc->vs_src, NULL);
-    glCompileShader(vs);
-
-    unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs, 1, &desc->fs_src, NULL);
-    glCompileShader(fs);
-
     shader->id = glCreateProgram();
+
+    unsigned int vs = CreateShaderStage(GL_VERTEX_SHADER, desc->vs_src);
+    unsigned int fs = CreateShaderStage(GL_FRAGMENT_SHADER, desc->fs_src);
+
     glAttachShader(shader->id, vs);
     glAttachShader(shader->id, fs);
     glLinkProgram(shader->id);
+
     glDeleteShader(vs);
     glDeleteShader(fs);
 
@@ -166,12 +156,33 @@ void EvaDeleteShader(EvaShader *shader) {
 /// Commands
 ///
 
+static void ApplyLayout(EvaBindings *bindings) {
+    int attrib = 0;
+    for (int i = 0; i < EVA_BINDINGS_MAX_VERTEX_BUFFERS && bindings->vbos[i] != NULL; i++) {
+        EvaBuffer *vbo = bindings->vbos[i];
+        glBindBuffer(GL_ARRAY_BUFFER, vbo->id);
+
+        for (int j = 0; j < vbo->num_attributes; j++) {
+            VertexAttribute va = vbo->attributes[j];
+            glEnableVertexAttribArray(attrib);
+
+            if (i == 0) {
+                glVertexAttribPointer(attrib, va.count, va.format, va.normalized, vbo->stride, (void *)va.offset);
+            } else {
+                glVertexAttribPointer(attrib, va.count, va.format, va.normalized, 0, 0);
+            }
+
+            attrib++;
+        }
+    }
+}
+
 void EvaClear(float r, float g, float b, float a) {
     glClearColor(r, g, b, a);
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void EvaSendUniforms(EvaShader *shader, void const *data) {
+void EvaApplyUniforms(EvaShader *shader, void const *data) {
     glUseProgram(shader->id);
 
     for (int i = 0; i < shader->num_uniforms; i++) {
@@ -210,35 +221,18 @@ void EvaSendUniforms(EvaShader *shader, void const *data) {
 }
 
 void EvaDraw(EvaBindings *bindings, EvaShader *shader, int count) {
+    ApplyLayout(bindings);
+
     glUseProgram(shader->id);
-
-    int attrib = 0;
-    for (int i = 0; i < EVA_BINDINGS_MAX_VERTEX_BUFFERS && bindings->vbos[i] != NULL; i++) {
-        EvaBuffer *vbo = bindings->vbos[i];
-        glBindBuffer(GL_ARRAY_BUFFER, vbo->id);
-
-        for (int j = 0; j < vbo->num_attributes; j++) {
-            VertexAttribute va = vbo->attributes[j];
-            glEnableVertexAttribArray(attrib);
-
-            if (i == 0) {
-                glVertexAttribPointer(attrib, va.count, va.format, va.normalized, vbo->stride, (void *)va.offset);
-            } else {
-                glVertexAttribPointer(attrib, va.count, va.format, va.normalized, 0, 0);
-            }
-
-            attrib++;
-        }
-    }
 
     if (bindings->ibo != NULL) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bindings->ibo->id);
         glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, NULL);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     } else {
         glDrawArrays(GL_TRIANGLES, 0, count);
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glUseProgram(0);
 }
 

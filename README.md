@@ -2,7 +2,7 @@
 A tiny OpenGL wrapper to make life a little easier.
 
 ```c
-// "Hello Triangle" in eva, using my wtk library for opening a window
+// demos/triangle.c
 
 #include "eva/eva.h"
 #include "wtk/wtk.h"
@@ -34,7 +34,7 @@ int main(void) {
     EvaBuffer *vbo = EvaCreateBuffer(&(EvaBufferDesc){
         .data = vertices,
         .size = sizeof vertices,
-        .layout = {EVA_VERTEXFORMAT_FLOAT2}
+        .layout = {EVA_FLOAT2}
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){

@@ -28,7 +28,7 @@ int main(void) {
     EvaBuffer *vbo = EvaCreateBuffer(&(EvaBufferDesc){
         .data = vertices,
         .size = sizeof vertices,
-        .layout = {EVA_VERTEXFORMAT_FLOAT2},
+        .layout = {EVA_FLOAT2},
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
