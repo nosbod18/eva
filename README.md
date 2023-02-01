@@ -2,7 +2,7 @@
 A tiny OpenGL wrapper to make life a little easier.
 
 ```c
-// "Hello Triangle" in eva, using my wtk library for window creation
+// "Hello Triangle" in eva, using my wtk library for opening a window
 
 #include "eva/eva.h"
 #include "wtk/wtk.h"
@@ -34,6 +34,7 @@ int main(void) {
     EvaBuffer *vbo = EvaCreateBuffer(&(EvaBufferDesc){
         .data = vertices,
         .size = sizeof vertices,
+        .layout = {EVA_VERTEXFORMAT_FLOAT2}
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
@@ -41,24 +42,20 @@ int main(void) {
         .fs.src = fs_src,
     });
 
-    EvaPipeline *pipeline = EvaCreatePipeline(&(EvaPipelineDesc){
-        .vbos   = {vbo},
-        .shader = shader,
-        .layout = {{.format = EVA_VERTEXFORMAT_FLOAT2}},
-    });
+    EvaBindings bindings = {
+        .vbos = {vbo}
+    };
 
     while (!WtkGetWindowShouldClose(window)) {
         EvaClear(0.1f, 0.1f, 0.1f, 1.0f);
-        EvaDraw(pipeline, 3);
+        EvaDraw(&bindings, shader, 3);
 
         WtkSwapBuffers(window);
         WtkPollEvents();
     }
 
-    EvaDeletePipeline(pipeline);
     EvaDeleteShader(shader);
     EvaDeleteBuffer(vbo);
     WtkDeleteWindow(window);
 }
-
 ```
