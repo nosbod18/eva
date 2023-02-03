@@ -23,9 +23,6 @@ ar crs bin/libeva.a eva.o
 rm eva.o
 
 # Build demos
-# gcc $CFLAGS triangle.c -o bin/triangle $LFLAGS
-# gcc $CFLAGS square.c -o bin/square $LFLAGS
-
 for f in *.c; do
     gcc $CFLAGS $f -o bin/${f%.c} $LFLAGS
 done
