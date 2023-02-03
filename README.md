@@ -7,10 +7,10 @@ A tiny OpenGL wrapper to make life a little easier.
 #include "eva/eva.h"
 #include "wtk/wtk.h"
 
-float const vertices[] = {
+float vertices[] = {
      0.0f,  0.5f,
      0.5f, -0.5f,
-    -0.5f, -0.5f
+    -0.5f, -0.5f,
 };
 
 char const *vs_src =
@@ -32,14 +32,14 @@ int main(void) {
     WtkMakeCurrent(window);
 
     EvaBuffer *vbo = EvaCreateBuffer(&(EvaBufferDesc){
-        .data = vertices,
-        .size = sizeof vertices,
-        .layout = {EVA_FLOAT2}
+        .data   = vertices,
+        .size   = sizeof vertices,
+        .layout = {EVA_VERTEXFORMAT_FLOAT2}
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
-        .vs.src = vs_src,
-        .fs.src = fs_src,
+        .vs_src = vs_src,
+        .fs_src = fs_src
     });
 
     EvaBindings bindings = {
