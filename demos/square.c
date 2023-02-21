@@ -1,5 +1,9 @@
-#include "eva/eva.h"
+#define EVA_IMPLEMENTATION
+#define WTK_IMPLEMENTATION
+#include "../eva.h"
 #include "wtk/wtk.h"
+
+#define GLSL(code) "#version 330 core\n" #code
 
 float vertices[] = {
      0.5f,  0.5f, 0.8f, 0.0f, 0.0f,
@@ -13,23 +17,26 @@ unsigned int indices[] = {
     2, 3, 0
 };
 
-char const *vs_src =
-    "#version 330 core\n"
-    "layout (location = 0) in vec2 a_pos;\n"
-    "layout (location = 1) in vec3 a_color;\n"
-    "out vec4 v_color;\n"
-    "void main() {\n"
-    "   gl_Position = vec4(a_pos, 0.0, 1.0);\n"
-    "   v_color = vec4(a_color, 1.0);\n"
-    "}\n";
+char const *vs_src = GLSL(
+    layout (location = 0) in vec2 a_pos;
+    layout (location = 1) in vec3 a_color;
 
-char const *fs_src =
-    "#version 330 core\n"
-    "in vec4 v_color;\n"
-    "out vec4 f_color;\n"
-    "void main() {\n"
-    "   f_color = v_color;\n"
-    "}\n";
+    out vec4 v_color;
+
+    void main() {
+        gl_Position = vec4(a_pos, 0.0, 1.0);
+        v_color = vec4(a_color, 1.0);
+    }
+);
+
+char const *fs_src = GLSL(
+    in vec4 v_color;
+    out vec4 f_color;
+
+    void main() {
+        f_color = v_color;
+    }
+);
 
 int main(void) {
     WtkWindow *wnd = WtkCreateWindow(&(WtkWindowDesc){0});
@@ -47,18 +54,23 @@ int main(void) {
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
-        .vs_src = vs_src,
-        .fs_src = fs_src,
+        .sources = {vs_src, fs_src}
     });
 
     EvaBindings bindings = {
-        .vbos = {vbo},
-        .ibo  = ibo,
+        .vbos   = {vbo},
+        .ibo    = ibo,
+        .shader = shader
     };
 
     while (!WtkGetWindowShouldClose(wnd)) {
-        EvaClear(0.1f, 0.1f, 0.1f, 1.0f);
-        EvaDraw(&bindings, shader, 6);
+        int w, h;
+        WtkGetWindowSize(wnd, &w, &h);
+
+        EvaBeginPass(&(EvaPassDesc){.clear = {0.1f, 0.1f, 0.1f, 1.0f}, .viewport = {.w = w, .h = h}});
+            EvaApplyBindings(&bindings);
+            EvaDraw(6);
+        EvaEndPass();
 
         WtkSwapBuffers(wnd);
         WtkPollEvents();

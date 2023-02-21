@@ -1,5 +1,9 @@
-#include "eva/eva.h"
+#define EVA_IMPLEMENTATION
+#define WTK_IMPLEMENTATION
+#include "../eva.h"
 #include "wtk/wtk.h"
+
+#define GLSL(code) "#version 330 core\n" #code
 
 float vertices[] = {
      0.0f,  0.5f,
@@ -7,19 +11,21 @@ float vertices[] = {
     -0.5f, -0.5f,
 };
 
-char const *vs_src =
-    "#version 330 core\n"
-    "layout (location = 0) in vec2 a_pos;\n"
-    "void main() {\n"
-    "   gl_Position = vec4(a_pos, 0.0, 1.0);\n"
-    "}\n";
+char const *vs_src = GLSL(
+    layout (location = 0) in vec2 a_pos;
 
-char const *fs_src =
-    "#version 330 core\n"
-    "out vec4 f_color;\n"
-    "void main() {\n"
-    "   f_color = vec4(0.0, 0.7, 0.8, 1.0);\n"
-    "}\n";
+    void main() {
+        gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+);
+
+char const *fs_src = GLSL(
+    out vec4 f_color;
+
+    void main() {
+        f_color = vec4(0.0, 0.7, 0.8, 1.0);
+    }
+);
 
 int main(void) {
     WtkWindow *wnd = WtkCreateWindow(&(WtkWindowDesc){0});
@@ -32,17 +38,22 @@ int main(void) {
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
-        .vs_src = vs_src,
-        .fs_src = fs_src,
+        .sources = {vs_src, fs_src}
     });
 
     EvaBindings bindings = {
         .vbos = {vbo},
+        .shader = shader
     };
 
     while (!WtkGetWindowShouldClose(wnd)) {
-        EvaClear(0.1f, 0.1f, 0.1f, 1.0f);
-        EvaDraw(&bindings, shader, 3);
+        int w, h;
+        WtkGetWindowSize(wnd, &w, &h);
+
+        EvaBeginPass(&(EvaPassDesc){.clear = {0.1f, 0.1f, 0.1f, 1.0f}, .viewport = {.w = w, .h = h}});
+            EvaApplyBindings(&bindings);
+            EvaDraw(3);
+        EvaEndPass();
 
         WtkSwapBuffers(wnd);
         WtkPollEvents();

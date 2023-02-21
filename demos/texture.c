@@ -1,5 +1,9 @@
-#include "eva/eva.h"
+#define EVA_IMPLEMENTATION
+#define WTK_IMPLEMENTATION
+#include "../eva.h"
 #include "wtk/wtk.h"
+
+#define GLSL(code) "#version 330 core\n" #code
 
 float vertices[] = {
      0.5f,  0.5f, 1.0f, 1.0f,
@@ -19,24 +23,27 @@ unsigned int pixels[] = {
     0x00000000, 0xffffffff, 0x00000000,
 };
 
-char const *vs_src =
-    "#version 330 core\n"
-    "layout (location = 0) in vec2 a_pos;\n"
-    "layout (location = 1) in vec2 a_uv;\n"
-    "out vec2 v_uv;\n"
-    "void main() {\n"
-    "   gl_Position = vec4(a_pos, 0.0, 1.0);\n"
-    "   v_uv = a_uv;\n"
-    "}\n";
+char const *vs_src = GLSL(
+    layout (location = 0) in vec2 a_pos;
+    layout (location = 1) in vec2 a_uv;
 
-char const *fs_src =
-    "#version 330 core\n"
-    "in vec2 v_uv;\n"
-    "uniform sampler2D u_tex;\n"
-    "out vec4 f_color;\n"
-    "void main() {\n"
-    "   f_color = texture(u_tex, v_uv);\n"
-    "}\n";
+    out vec2 v_uv;
+
+    void main() {
+        gl_Position = vec4(a_pos, 0.0, 1.0);
+        v_uv = a_uv;
+    }
+);
+
+char const *fs_src = GLSL(
+    in vec2 v_uv;
+    uniform sampler2D u_tex;
+    out vec4 f_color;
+
+    void main() {
+        f_color = texture(u_tex, v_uv);
+    }
+);
 
 int main(void) {
     WtkWindow *wnd = WtkCreateWindow(&(WtkWindowDesc){0});
@@ -54,8 +61,7 @@ int main(void) {
     });
 
     EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
-        .vs_src   = vs_src,
-        .fs_src   = fs_src,
+        .sources  = {vs_src, fs_src},
         .uniforms = {{.name = "u_tex", .format = EVA_UNIFORMFORMAT_IMAGE2D}}
     });
 
@@ -68,13 +74,18 @@ int main(void) {
     EvaBindings bindings = {
         .vbos   = {vbo},
         .ibo    = ibo,
+        .shader = shader,
         .images = {image}
     };
 
     while (!WtkGetWindowShouldClose(wnd)) {
-        EvaClear(0.1f, 0.1f, 0.1f, 1.0f);
-        EvaApplyUniforms(shader, image);
-        EvaDraw(&bindings, shader, 6);
+        int w, h;
+        WtkGetWindowSize(wnd, &w, &h);
+
+        EvaBeginPass(&(EvaPassDesc){.clear = {0.1f, 0.1f, 0.1f, 1.0f}, .viewport = {.w = w, .h = h}});
+            EvaApplyBindings(&bindings);
+            EvaDraw(6);
+        EvaEndPass();
 
         WtkSwapBuffers(wnd);
         WtkPollEvents();
