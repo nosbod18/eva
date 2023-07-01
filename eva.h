@@ -25,6 +25,11 @@ enum {
 };
 
 enum {
+    EVA_SHADER_STAGE_VERTEX,
+    EVA_SHADER_STAGE_FRAGMENT,
+};
+
+enum {
     EVA_IMAGEFORMAT_RGBA8,
     EVA_IMAGEFORMAT_RGB8,
 };
@@ -49,15 +54,17 @@ enum {
 /// Types
 ///
 
-typedef struct EvaBuffer EvaBuffer;
-typedef struct EvaBufferDesc {
+typedef struct eva_buffer_t    eva_buffer_t;
+typedef struct eva_shader_t    eva_shader_t;
+typedef struct eva_image_t     eva_image_t;
+
+typedef struct eva_buffer_desc_t {
     void const *data;
     size_t size;
     int layout[EVA_BUFFER_MAX_ATTRIBUTES];
-} EvaBufferDesc;
+} eva_buffer_desc_t;
 
-typedef struct EvaShader EvaShader;
-typedef struct EvaShaderDesc {
+typedef struct eva_shader_desc_t {
     struct {
         char const *src;
     } sources[2];
@@ -65,10 +72,9 @@ typedef struct EvaShaderDesc {
         char const *name;
         int format;
     } uniforms[EVA_SHADER_MAX_UNIFORMS];
-} EvaShaderDesc;
+} eva_shader_desc_t;
 
-typedef struct EvaImage EvaImage;
-typedef struct EvaImageDesc {
+typedef struct eva_image_desc_t {
     void const *data;
     int width;
     int height;
@@ -79,34 +85,38 @@ typedef struct EvaImageDesc {
     struct {
         int min, mag;
     } filter;
-} EvaImageDesc;
+} eva_image_desc_t;
 
-typedef struct EvaBindings {
-    EvaBuffer *vbos[EVA_BINDINGS_MAX_VBOS];
-    EvaBuffer *ibo;
-    EvaShader *shader;
-    EvaImage  *images[EVA_BINDINGS_MAX_IMAGES];
-} EvaBindings;
+typedef struct eva_bindings_desc_t {
+    eva_buffer_t *vbos[EVA_BINDINGS_MAX_VBOS];
+    eva_buffer_t *ibo;
+    eva_image_t  *images[EVA_BINDINGS_MAX_IMAGES];
+} eva_bindings_desc_t;
 
-typedef struct EvaPassDesc {
+typedef struct eva_pipeline_desc_t {
+    eva_shader_t *shader;
+} eva_pipeline_desc_t;
+
+typedef struct eva_pass_desc_t {
     struct { float r, g, b, a; } clear;
-    struct { int x, y, w, h;   } viewport;
-} EvaPassDesc;
+    struct { int   x, y, w, h; } viewport;
+} eva_pass_desc_t;
 
 ///
 /// Prototypes
 ///
 
-EvaBuffer   *EvaCreateBuffer    (EvaBufferDesc *desc);
-EvaShader   *EvaCreateShader    (EvaShaderDesc *desc);
-EvaImage    *EvaCreateImage     (EvaImageDesc *desc);
+eva_buffer_t   *eva_buffer_create   (eva_buffer_desc_t *desc);
+eva_shader_t   *eva_shader_create   (eva_shader_desc_t *desc);
+eva_image_t    *eva_image_create    (eva_image_desc_t *desc);
 
-void         EvaDeleteBuffer    (EvaBuffer *buffer);
-void         EvaDeleteShader    (EvaShader *shader);
-void         EvaDeleteImage     (EvaImage *image);
+void            eva_buffer_delete   (eva_buffer_t *buffer);
+void            eva_shader_delete   (eva_shader_t *shader);
+void            eva_image_delete    (eva_image_t *image);
 
-void         EvaBeginPass       (EvaPassDesc *pass);
-void         EvaApplyBindings   (EvaBindings *bindings);
-void         EvaApplyUniforms   (void *data);
-void         EvaDraw            (int count);
-void         EvaEndPass         (void);
+void            eva_pass_begin      (eva_pass_desc_t *pass);
+void            eva_bindings_apply  (eva_bindings_desc_t *bindings);
+void            eva_pipeline_apply  (eva_pipeline_desc_t *pipeline);
+void            eva_uniforms_apply  (void *data);
+void            eva_draw            (int first, int count);
+void            eva_pass_end        (void);
