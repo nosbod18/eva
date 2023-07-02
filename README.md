@@ -2,8 +2,8 @@
 A tiny OpenGL wrapper to make life a little easier.
 
 ```c
-#define EVA_IMPLEMENTATION
-#define WTK_IMPLEMENTATION
+#define EVA_IMPL
+#define WTK_IMPL
 #include "eva/eva.h"
 #include "wtk/wtk.h"
 
@@ -17,7 +17,6 @@ float vertices[] = {
 
 char const *vs_src = GLSL(
     layout (location = 0) in vec2 a_pos;
-
     void main() {
         gl_Position = vec4(a_pos, 0.0, 1.0);
     }
@@ -25,46 +24,50 @@ char const *vs_src = GLSL(
 
 char const *fs_src = GLSL(
     out vec4 f_color;
-
     void main() {
         f_color = vec4(0.0, 0.7, 0.8, 1.0);
     }
 );
 
 int main(void) {
-    WtkWindow *window = WtkCreateWindow(&(WtkWindowDesc){0});
-    WtkMakeCurrent(window);
+    wtk_window_t *window = wtk_window_create(&(wtk_window_desc_t){0});
+    wtk_window_make_current(window);
 
-    EvaBuffer *vbo = EvaCreateBuffer(&(EvaBufferDesc){
+    eva_buffer_t *vbo = eva_buffer_create(&(eva_buffer_desc_t){
         .data   = vertices,
         .size   = sizeof vertices,
         .layout = {EVA_VERTEXFORMAT_FLOAT2}
     });
 
-    EvaShader *shader = EvaCreateShader(&(EvaShaderDesc){
+    eva_shader_t *shader = eva_shader_create(&(eva_shader_desc_t){
         .sources = {vs_src, fs_src}
     });
 
-    EvaBindings bindings = {
+    eva_bindings_desc_t bindings = {
         .vbos = {vbo}
     };
 
-    while (!WtkGetWindowShouldClose(window)) {
+    eva_pipeline_desc_t pipeline = {
+        .shader = shader
+    };
+
+    while (!wtk_window_closed(window)) {
         int w, h;
-        WtkGetWindowSize(window, &w, &h);
+        wtk_window_size(window, &w, &h);
 
-        EvaBeginPass(&(EvaPassDesc){.clear = {0.1f, 0.1f, 0.1f, 1.0f}, .viewport = {.w = w, .h = h}});
-            EvaApplyBindings(&bindings);
-            EvaDraw(3);
-        EvaEndPass();
+        eva_pass_begin(&(eva_pass_desc_t){.clear = {.a = 1.f}, .viewport = {.w = w, .h = h}});
+            eva_bindings_apply(&bindings);
+            eva_pipeline_apply(&pipeline);
+            eva_draw(0, 3);
+        eva_pass_end();
 
-        WtkSwapBuffers(window);
-        WtkPollEvents();
+        wtk_window_swap_buffers(window);
+        wtk_poll_events();
     }
 
-    EvaDeleteShader(shader);
-    EvaDeleteBuffer(vbo);
-    WtkDeleteWindow(window);
+    eva_shader_delete(shader);
+    eva_buffer_delete(vbo);
+    wtk_window_delete(window);
 }
 ```
 
